@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tumhare Liye Kuch Khaas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root{
+  --dusk-1: #2b1f45;
+  --dusk-2: #6b3f68;
+  --dusk-3: #d97b6c;
+  --ground: #3a2a3d;
+  --wood: #7a4a30;
+  --wood-dark: #5c3620;
+  --cream: #fbf3e7;
+  --accent: #e8a15b;
+  --pink: #ff6f91;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Space Grotesk', sans-serif;
+}
+*{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body{ margin:0; height:100%; font-family: var(--font-body); color: var(--cream); overflow:hidden; }
+
+.stage{
+  position: fixed; inset:0;
+  background: linear-gradient(180deg, var(--dusk-1) 0%, var(--dusk-2) 55%, var(--dusk-3) 100%);
+  overflow: hidden;
+}
+.stage::before{
+  content: "";
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.5px 1.5px at 30% 10%, rgba(255,255,255,.5), transparent),
+    radial-gradient(2px 2px at 70% 15%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 85% 25%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1.5px 1.5px at 50% 8%, rgba(255,255,255,.4), transparent);
+  opacity: .8;
+}
+.ground{ position:absolute; bottom:0; left:0; right:0; height:24%; background: linear-gradient(180deg, var(--ground) 0%, #241a2e 100%); }
+.ground::before{ content:""; position:absolute; top:0; left:0; right:0; height:4px; background: rgba(232,161,91,.35); }
+
+/* ---------------- CONVOY: character + rope + board, all move together ---------------- */
+.convoy{
+  position:absolute; bottom:22%; z-index:3;
+  display:flex; align-items:flex-end; gap:12px;
+  white-space:nowrap;
+}
+.convoy.reverse{ flex-direction: row-reverse; }
+
+.board{ display:flex; flex-direction:column; align-items:center; }
+.board .posts{ display:flex; gap:120px; }
+.board .post{ width:14px; height:90px; background: linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%); border-radius:3px; }
+.board .panel{
+  margin-top:-18px;
+  background: linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+  border: 3px solid #3f2515;
+  border-radius: 10px;
+  padding: 26px 30px;
+  width: 300px;
+  max-width: 78vw;
+  box-shadow: 0 18px 30px rgba(0,0,0,.35);
+  text-align: center;
+}
+.board .panel h1, .board .panel h2{ font-family: var(--font-display); font-weight:600; margin:0 0 6px; color: var(--cream); letter-spacing:.5px; font-size:1.25rem; }
+.board .panel p.sub{ margin:0 0 16px; color: rgba(251,243,231,.75); font-size:.88rem; }
+
+.field{ text-align:left; margin-bottom:12px; }
+.field label{ display:block; font-size:.78rem; margin-bottom:6px; color: rgba(251,243,231,.8); }
+.field input{ width:100%; padding:9px 11px; border-radius:7px; border:1px solid rgba(251,243,231,.25); background: rgba(0,0,0,.25); color: var(--cream); font-family: var(--font-body); font-size:.95rem; }
+.field input:focus{ outline:none; border-color: var(--accent); }
+.error{ color:#ffb4a8; font-size:.8rem; min-height:16px; margin-bottom:4px; }
+
+button.cta{
+  margin-top:6px; width:100%; padding:12px 16px; border:none; border-radius:7px;
+  background: var(--accent); color:#2a1a10; font-family: var(--font-body); font-weight:600;
+  font-size:.95rem; cursor:pointer; transition: transform .15s ease, background .15s ease;
+  touch-action: manipulation;
+}
+button.cta:hover{ background:#f0b476; transform: translateY(-1px); }
+button.cta:active{ transform: translateY(0); }
+button.cta.ghost{ background: transparent; border:2px solid rgba(251,243,231,.4); color: var(--cream); }
+button.cta.ghost:hover{ background: rgba(251,243,231,.08); }
+
+.btn-row{ display:flex; gap:10px; margin-top:6px; }
+.btn-row button{ margin-top:0; }
+
+.back-btn{ margin-top:10px; padding:9px 14px; font-size:.82rem; }
+
+.dots{ display:flex; gap:6px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+.dots span{ width:6px; height:6px; border-radius:50%; background: rgba(251,243,231,.3); }
+.dots span.active{ background: var(--accent); }
+
+/* rope connecting board to character */
+.rope-wrap{ width:64px; height:60px; margin-bottom:34px; flex-shrink:0; }
+.rope-wrap svg{ width:100%; height:100%; overflow:visible; }
+.convoy.walking .rope-line{ animation: taut .5s infinite ease-in-out; }
+@keyframes taut{ 0%,100%{ d: path('M4,46 Q32,16 60,40'); } 50%{ d: path('M4,42 Q32,58 60,40'); } }
+.convoy .dust{ opacity:0; }
+.convoy.walking .dust{ animation: dustPuff .5s infinite ease-out; }
+@keyframes dustPuff{ 0%{ opacity:.55; transform: scale(.4) translateY(0);} 100%{ opacity:0; transform: scale(1.3) translateY(-6px);} }
+
+/* character */
+.charwrap{ position:relative; width:120px; height:200px; flex-shrink:0; transform-origin: bottom center; }
+.charwrap svg{ width:100%; height:100%; overflow:visible; }
+.leg-l,.leg-r,.arm-l,.arm-r{ transform-box: fill-box; transform-origin: top center; }
+.convoy.walking .leg-l{ animation: swingL .5s infinite ease-in-out; }
+.convoy.walking .leg-r{ animation: swingR .5s infinite ease-in-out; }
+.convoy.walking .arm-l{ animation: pullArmL .5s infinite ease-in-out; }
+.convoy.walking .arm-r{ animation: pullArmR .5s infinite ease-in-out; }
+.convoy.walking .body-bob{ animation: bob .25s infinite ease-in-out; }
+.convoy.walking .charwrap{ animation: lean .5s infinite ease-in-out; }
+@keyframes swingL{ 0%,100%{ transform: rotate(26deg);} 50%{ transform: rotate(-20deg);} }
+@keyframes swingR{ 0%,100%{ transform: rotate(-20deg);} 50%{ transform: rotate(26deg);} }
+@keyframes pullArmL{ 0%,100%{ transform: rotate(-30deg);} 50%{ transform: rotate(-8deg);} }
+@keyframes pullArmR{ 0%,100%{ transform: rotate(-8deg);} 50%{ transform: rotate(-30deg);} }
+@keyframes bob{ 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-4px);} }
+@keyframes lean{ 0%,100%{ transform: rotate(-9deg);} 50%{ transform: rotate(-13deg);} }
+.convoy.reverse .charwrap{ transform: scaleX(-1); }
+
+/* fallen easter egg (No button) */
+.convoy.fallen .charwrap{ animation:none; transform: rotate(78deg) translate(20px, 14px); transition: transform .5s cubic-bezier(.34,1.6,.64,1); }
+.convoy.reverse.fallen .charwrap{ transform: scaleX(-1) rotate(78deg) translate(20px, 14px); }
+.convoy.fallen .leg-l,.convoy.fallen .leg-r,.convoy.fallen .arm-l,.convoy.fallen .arm-r,.convoy.fallen .body-bob{ animation:none !important; }
+.convoy.fallen .rope-line, .convoy.fallen .dust{ animation:none !important; }
+
+.cloud-bubble{
+  position:absolute; bottom:100%; left:50%; transform: translateX(-55%) scale(.7); margin-bottom:6px;
+  opacity:0; pointer-events:none; transition: opacity .35s ease, transform .35s ease; z-index:4;
+  width:190px;
+}
+.cloud-bubble.show{ opacity:1; transform: translateX(-55%) scale(1); }
+.cloud-bubble svg{ width:100%; display:block; filter: drop-shadow(0 8px 14px rgba(0,0,0,.3)); }
+.cloud-bubble .txt{
+  position:absolute; inset:0 0 22% 0; display:flex; align-items:center; justify-content:center;
+  text-align:center; padding:0 22px; font-family: var(--font-display); font-weight:600;
+  color:#4a3a2e; font-size:.86rem; line-height:1.2;
+}
+
+/* final propose panel - unique styling */
+.panel.final-propose{
+  background: linear-gradient(160deg, #ff8fa8 0%, #ff6f91 45%, #e8557a 100%);
+  border: 3px solid #a83358;
+  position: relative;
+  overflow: visible;
+}
+.panel.final-propose::before{
+  content:"💛"; position:absolute; top:-22px; left:-14px; font-size:1.6rem;
+  animation: floaty 2.4s infinite ease-in-out;
+}
+.panel.final-propose::after{
+  content:"✨"; position:absolute; bottom:-18px; right:-10px; font-size:1.6rem;
+  animation: floaty 2.4s infinite ease-in-out reverse;
+}
+@keyframes floaty{ 0%,100%{ transform: translateY(0) rotate(0);} 50%{ transform: translateY(-8px) rotate(12deg);} }
+.panel.final-propose h2{ font-size:1.4rem; color:#fff; text-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.panel.final-propose p.sub{ color: rgba(255,255,255,.9); }
+
+.hearts-burst{ position:absolute; inset:0; pointer-events:none; overflow:visible; }
+.hearts-burst span{
+  position:absolute; bottom:0; left:50%; font-size:1.4rem; opacity:0;
+  animation: burst 1.6s ease-out forwards;
+}
+@keyframes burst{
+  0%{ opacity:1; transform: translate(-50%,0) scale(.6); }
+  100%{ opacity:0; transform: translate(calc(-50% + var(--dx,0px)), -160px) scale(1.2) rotate(var(--rot,0deg)); }
+}
+
+@media (max-width:520px){
+  .board .posts{ gap:70px; }
+  .board .panel{ padding:20px 16px; width:250px; }
+  .rope-wrap{ width:44px; height:44px; margin-bottom:26px; }
+  .charwrap{ width:90px; height:150px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .convoy.walking .leg-l, .convoy.walking .leg-r,
+  .convoy.walking .arm-l, .convoy.walking .arm-r,
+  .convoy.walking .body-bob, .convoy.walking .charwrap,
+  .convoy.walking .rope-line, .convoy.walking .dust{ animation:none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="ground"></div>
+
+  <div class="convoy" id="convoy">
+    <div class="board">
+      <div class="posts"><div class="post"></div><div class="post"></div></div>
+      <div class="panel" id="panel"></div>
+    </div>
+
+    <div class="rope-wrap">
+      <svg viewBox="0 0 64 60" xmlns="http://www.w3.org/2000/svg">
+        <ellipse class="dust" cx="10" cy="52" rx="8" ry="4" fill="rgba(255,255,255,.4)"/>
+        <path class="rope-line" d="M4,46 Q32,16 60,40" stroke="#c9a876" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <div class="charwrap" id="charwrap">
+      <div class="cloud-bubble" id="cloudBubble">
+        <svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+          <g fill="#fdf6ec">
+            <circle cx="50" cy="55" r="32"/>
+            <circle cx="90" cy="35" r="38"/>
+            <circle cx="135" cy="50" r="34"/>
+            <circle cx="100" cy="65" r="36"/>
+            <rect x="45" y="55" width="115" height="35" rx="17"/>
+          </g>
+          <path d="M78,88 L62,104 L92,90 Z" fill="#fdf6ec"/>
+        </svg>
+        <div class="txt">Please, YES kar do na 🥺</div>
+      </div>
+      <svg viewBox="0 0 90 150" xmlns="http://www.w3.org/2000/svg">
+        <g class="body-bob">
+          <rect class="arm-l" x="30" y="55" width="9" height="42" rx="4.5" fill="#3b2e52"/>
+          <rect class="leg-l" x="35" y="92" width="10" height="46" rx="5" fill="#241a2e"/>
+          <rect class="leg-r" x="47" y="92" width="10" height="46" rx="5" fill="#2f2340"/>
+          <rect x="30" y="50" width="30" height="48" rx="10" fill="#4d3d73"/>
+          <rect class="arm-r" x="52" y="55" width="9" height="42" rx="4.5" fill="#5a4788"/>
+          <rect x="41" y="40" width="8" height="12" fill="#e0a97c"/>
+          <circle cx="45" cy="28" r="18" fill="#eab48a"/>
+          <path d="M27 24c0-11 8-19 18-19s18 8 18 19c-3-3-8-5-12-4-2-4-6-5-9-3-4-2-9-1-11 3-2 1-3 2-4 4z" fill="#241a2e"/>
+          <circle cx="27" cy="29" r="3" fill="#e0a97c"/>
+          <circle cx="63" cy="29" r="3" fill="#e0a97c"/>
+          <circle cx="39" cy="27" r="2.1" fill="#241a2e"/>
+          <circle cx="51" cy="27" r="2.1" fill="#241a2e"/>
+          <path d="M38 35c2.5 2.5 11.5 2.5 14 0" stroke="#8a4a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M33 20c2-2 6-3 8-1" stroke="#241a2e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+          <path d="M49 19c2-2 6-1 8 1" stroke="#241a2e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const FIXED_PASSWORD = "kritikapraveen";
+
+// Apna kahani yahin likho (Hindi mein):
+const slides = [
+  "Suno, mujhe tumse kuch kehna hai.",
+  "Koi badi ya darawani baat nahi hai, chinta mat karo.",
+  "Bas itna hai ki... tumhare saath har din thoda behtar lagta hai.",
+  "Tumhare saath sadharan pal bhi yaadgar ban jaate hain.",
+  "Tumhara hasna, tumhara sunna — sab kuch mujhe achha lagta hai.",
+  "Maine ye poori chalti-firti website sirf isliye banayi hai.",
+  "Ye jo bojh khinch kar chal raha hai na — bilkul waise hi main tumhare liye kuch bhi karne ko taiyar hoon.",
+  "Bas thoda aur chalna hai, mere saath raho.",
+  "Bas pahunchne hi wale hain.",
+  "Ab ghuma-phira kar nahi, seedha bol deta hoon.",
+  "Mujhe tum sach mein bahut pasand ho — jitna maine kaha hai usse kahin zyada.",
+  "Toh yahi sawaal hai... kya tum meri banoge?"
+];
+
+/* ---------------- PAGE LIST ----------------
+   0: login
+   1: dashboard
+   2..(2+slides.length-1): slides
+   last: celebrate
+------------------------------------------------ */
+const pages = [{ type:'login' }, { type:'dashboard' }];
+slides.forEach((text, i) => pages.push({ type:'slide', text, i }));
+pages.push({ type:'celebrate' });
+const CELEBRATE_INDEX = pages.length - 1;
+
+let currentIndex = 0;
+let username = '';
+let transitioning = false;
+
+const convoy = document.getElementById('convoy');
+const panel = document.getElementById('panel');
+const cloudBubble = document.getElementById('cloudBubble');
+
+/* ---------------- RENDER PANEL CONTENT ---------------- */
+function renderPanel(index){
+  const p = pages[index];
+  panel.classList.remove('final-propose');
+
+  if(p.type === 'login'){
+    panel.innerHTML = `
+      <h1>Hey Tum</h1>
+      <p class="sub">ye sirf tumhare liye hai — dekhne ke liye sign in karo</p>
+      <form id="loginForm" autocomplete="off">
+        <div class="field">
+          <label for="username">Tumhara naam</label>
+          <input id="username" type="text" placeholder="apna naam likho" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="••••••••" required>
+        </div>
+        <div class="error" id="errorMsg"></div>
+        <button type="submit" class="cta">Andar aao</button>
+      </form>
+    `;
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nameVal = document.getElementById('username').value.trim();
+      const passVal = document.getElementById('password').value;
+      const errorMsg = document.getElementById('errorMsg');
+      if(!nameVal){ errorMsg.textContent = "Pehle apna naam to batao :)"; return; }
+      if(passVal !== FIXED_PASSWORD){ errorMsg.textContent = "Ye sahi nahi hai — dobara try karo."; return; }
+      username = nameVal;
+      transitionTo(1, 1);
+    });
+    return;
+  }
+
+  if(p.type === 'dashboard'){
+    panel.innerHTML = `
+      <h2>Tumhare Liye Kuch Khaas, ${escapeHTML(username)}</h2>
+      <p class="sub">chalte raho, aage sab achha hai</p>
+      <button class="cta" id="nextBtn">Aage</button>
+      <button class="cta ghost back-btn" id="backBtn">⬅ Peeche</button>
+    `;
+    document.getElementById('nextBtn').addEventListener('click', () => transitionTo(index + 1, 1));
+    document.getElementById('backBtn').addEventListener('click', () => transitionTo(index - 1, -1));
+    return;
+  }
+
+  if(p.type === 'slide'){
+    const isFinal = p.i === slides.length - 1;
+    if(isFinal) panel.classList.add('final-propose');
+    let dotsHTML = '<div class="dots">';
+    slides.forEach((_, i) => { dotsHTML += `<span class="${i === p.i ? 'active' : ''}"></span>`; });
+    dotsHTML += '</div>';
+
+    panel.innerHTML = `
+      <h2>${escapeHTML(p.text)}</h2>
+      ${isFinal ? `
+        <div class="btn-row">
+          <button class="cta" id="yesBtn">Haan 💛</button>
+          <button class="cta ghost" id="noBtn">Nahi</button>
+        </div>
+      ` : `<button class="cta" id="nextBtn">Aage</button>`}
+      ${dotsHTML}
+      <button class="cta ghost back-btn" id="backBtn">⬅ Peeche</button>
+    `;
+    document.getElementById('backBtn').addEventListener('click', () => transitionTo(index - 1, -1));
+    if(isFinal){
+      document.getElementById('yesBtn').addEventListener('click', () => {
+        spawnHearts();
+        transitionTo(CELEBRATE_INDEX, 1);
+      });
+      document.getElementById('noBtn').addEventListener('click', () => triggerFallen());
+    } else {
+      document.getElementById('nextBtn').addEventListener('click', () => transitionTo(index + 1, 1));
+    }
+    return;
+  }
+
+  if(p.type === 'celebrate'){
+    panel.classList.add('final-propose');
+    panel.innerHTML = `
+      <div class="hearts-burst" id="heartsBurst"></div>
+      <h2>Yayy! 🎉</h2>
+      <p class="sub" style="color:#fff;">${escapeHTML(username ? username + ', ' : '')}tumne haan bol diya! 💛</p>
+      <button class="cta ghost back-btn" id="backBtn" style="border-color:rgba(255,255,255,.5); color:#fff;">⬅ Peeche</button>
+    `;
+    document.getElementById('backBtn').addEventListener('click', () => transitionTo(index - 1, -1));
+    return;
+  }
+}
+
+function escapeHTML(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------------- HEARTS ---------------- */
+function spawnHearts(){
+  requestAnimationFrame(() => {
+    const wrap = document.getElementById('heartsBurst');
+    if(!wrap) return;
+    wrap.innerHTML = '';
+    const emojis = ['💛','💖','✨','💛','💗','✨','💛'];
+    emojis.forEach((e,i) => {
+      const span = document.createElement('span');
+      span.textContent = e;
+      span.style.setProperty('--dx', (Math.random()*160-80) + 'px');
+      span.style.setProperty('--rot', (Math.random()*60-30) + 'deg');
+      span.style.left = (10 + Math.random()*80) + '%';
+      span.style.animationDelay = (i*0.08) + 's';
+      wrap.appendChild(span);
+    });
+  });
+}
+
+/* ---------------- FALLEN EASTER EGG (No button) ---------------- */
+function triggerFallen(){
+  convoy.classList.remove('walking');
+  convoy.classList.add('fallen');
+  cloudBubble.classList.add('show');
+  setTimeout(() => {
+    cloudBubble.classList.remove('show');
+    convoy.classList.remove('fallen');
+  }, 2200);
+}
+
+/* ---------------- CORE TRANSITION: character drags the page in/out ---------------- */
+function transitionTo(newIndex, direction){
+  if(transitioning) return;
+  if(newIndex < 0 || newIndex >= pages.length) return;
+  transitioning = true;
+
+  convoy.classList.remove('fallen');
+  cloudBubble.classList.remove('show');
+  convoy.classList.toggle('reverse', direction === -1);
+  convoy.classList.add('walking');
+  convoy.style.transition = 'left 1.1s ease-in-out';
+
+  const vw = window.innerWidth;
+  const exitLeft = direction === 1 ? (vw + 80) : -(convoy.offsetWidth + 80);
+  convoy.style.left = exitLeft + 'px';
+
+  convoy.addEventListener('transitionend', function onExit(e){
+    if(e.propertyName !== 'left') return;
+    convoy.removeEventListener('transitionend', onExit);
+
+    currentIndex = newIndex;
+    renderPanel(currentIndex);
+
+    convoy.style.transition = 'none';
+    const w = convoy.offsetWidth;
+    const enterLeft = direction === 1 ? -(w + 80) : (vw + 80);
+    convoy.style.left = enterLeft + 'px';
+    void convoy.offsetWidth; // force reflow
+
+    requestAnimationFrame(() => {
+      convoy.style.transition = 'left 1.1s ease-in-out';
+      const centerLeft = (vw - w) / 2;
+      convoy.style.left = centerLeft + 'px';
+
+      convoy.addEventListener('transitionend', function onEnter(e2){
+        if(e2.propertyName !== 'left') return;
+        convoy.removeEventListener('transitionend', onEnter);
+        convoy.classList.remove('walking');
+        transitioning = false;
+      }, { once:true });
+    });
+  }, { once:true });
+}
+
+/* ---------------- INITIAL ENTRANCE (login page walks in) ---------------- */
+function initialEntrance(){
+  renderPanel(0);
+  const vw = window.innerWidth;
+  convoy.style.transition = 'none';
+  convoy.classList.remove('reverse');
+  const w = convoy.offsetWidth;
+  convoy.style.left = -(w + 80) + 'px';
+  void convoy.offsetWidth;
+  convoy.classList.add('walking');
+  requestAnimationFrame(() => {
+    convoy.style.transition = 'left 1.3s ease-in-out';
+    const centerLeft = (vw - w) / 2;
+    convoy.style.left = centerLeft + 'px';
+    convoy.addEventListener('transitionend', function done(e){
+      if(e.propertyName !== 'left') return;
+      convoy.removeEventListener('transitionend', done);
+      convoy.classList.remove('walking');
+    }, { once:true });
+  });
+}
+
+initialEntrance();
+</script>
+</body>
+</html>
