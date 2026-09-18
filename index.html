@@ -279,19 +279,27 @@ button.cta.small{ width:auto; padding:11px 20px; font-size:.88rem; margin-top:4p
 .chat-page .top-bar{ padding:0 24px; margin-bottom:10px; }
 .chat-messages{
   flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:10px;
-  padding: 6px 20px 14px;
+  padding: 14px 20px 14px; margin: 0 10px;
+  background: linear-gradient(180deg, rgba(12,7,17,.55) 0%, rgba(12,7,17,.66) 100%);
+  border-radius: 20px 20px 0 0;
 }
-.chat-day-sep{ text-align:center; font-size:.68rem; color: rgba(247,236,223,.4); margin:10px 0 2px; }
+.chat-day-sep{ text-align:center; font-size:.68rem; color: rgba(247,236,223,.55); margin:10px 0 2px; }
 .chat-bubble{ max-width:78%; display:flex; flex-direction:column; gap:6px; }
 .chat-bubble.me{ align-self:flex-end; align-items:flex-end; }
 .chat-bubble.them{ align-self:flex-start; align-items:flex-start; }
-.chat-bubble .who{ font-size:.65rem; color: rgba(247,236,223,.42); padding:0 4px; }
+.chat-bubble .who{ font-size:.65rem; color: rgba(247,236,223,.55); padding:0 4px; }
 .chat-bubble .bubble-body{
   border-radius:18px; padding:11px 14px; font-size:.92rem; line-height:1.45; word-break:break-word;
   backdrop-filter: blur(10px);
 }
 .chat-bubble.me .bubble-body{ background: var(--accent); color:#2a1a10; border-bottom-right-radius:5px; }
-.chat-bubble.them .bubble-body{ background: var(--glass-bg); border:1px solid var(--glass-border); color: var(--cream); border-bottom-left-radius:5px; }
+.chat-bubble.them .bubble-body{ background: rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.26); color: var(--cream); border-bottom-left-radius:5px; }
+.chat-bubble .bubble-foot{ display:flex; align-items:center; gap:6px; }
+.chat-bubble .msg-del{
+  background:none; border:none; color: rgba(255,180,168,.55); font-size:.8rem; line-height:1;
+  cursor:pointer; padding:2px 3px; flex-shrink:0;
+}
+.chat-bubble .msg-del:hover{ color:#ffb4a8; }
 .chat-bubble .bubble-media{
   max-width:220px; border-radius:14px; overflow:hidden; cursor:pointer; border:1px solid var(--glass-border);
   display:block;
@@ -312,7 +320,9 @@ button.cta.small{ width:auto; padding:11px 20px; font-size:.88rem; margin-top:4p
 .chat-input-row{
   flex:0 0 auto; display:flex; align-items:center; gap:8px;
   padding: 10px 20px calc(10px + env(safe-area-inset-bottom,0px));
-  border-top:1px solid rgba(247,236,223,.1);
+  margin: 0 10px; border-radius: 0 0 20px 20px;
+  background: rgba(12,7,17,.66);
+  border-top:1px solid rgba(247,236,223,.14);
 }
 .chat-input-row input[type="text"]{
   flex:1; padding:12px 15px; border-radius:999px; border:1px solid var(--glass-border);
@@ -1132,12 +1142,54 @@ function buildBubble(msg){
     wrap.appendChild(body);
   }
 
+  const foot = document.createElement('div');
+  foot.className = 'bubble-foot';
+
   const time = document.createElement('div');
   time.className = 'time';
   time.textContent = chatTimeLabel(msg.created_at);
-  wrap.appendChild(time);
+  foot.appendChild(time);
+
+  if(mine){
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'msg-del';
+    delBtn.setAttribute('aria-label', 'Message delete karo');
+    delBtn.textContent = '🗑';
+    delBtn.addEventListener('click', () => deleteSingleMessage(msg, wrap));
+    foot.appendChild(delBtn);
+  }
+
+  wrap.appendChild(foot);
 
   return wrap;
+}
+
+/* ek single message delete karo — apna khud bheja hua message, uske media samet */
+async function deleteSingleMessage(msg, bubbleEl){
+  if(!sb) return;
+  const sure = confirm('Yeh message delete karna hai? Yeh sabke liye hat jayega.');
+  if(!sure) return;
+
+  try{
+    if(msg.media_url){
+      const idx = msg.media_url.indexOf('/' + CHAT_BUCKET + '/');
+      if(idx !== -1){
+        const path = msg.media_url.slice(idx + CHAT_BUCKET.length + 2);
+        const { error: rmErr } = await sb.storage.from(CHAT_BUCKET).remove([path]);
+        if(rmErr) console.warn('media delete nahi hui (aage badh rahe hain):', rmErr.message);
+      }
+    }
+    const { error } = await sb.from('messages').delete().eq('id', msg.id);
+    if(error) throw error;
+    bubbleEl.remove();
+    if(!chatMessagesEl.querySelector('.chat-bubble')){
+      chatMessagesEl.innerHTML = '<p class="chat-empty">Abhi koi message nahi — sabse pehle tum bolo 👋</p>';
+    }
+  } catch(err){
+    console.error(err);
+    alert('Message delete nahi ho paya. Console check karo.');
+  }
 }
 
 function appendMessage(msg){
